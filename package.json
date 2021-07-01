@@ -1,0 +1,12 @@
+{
+  "name": "vercel-oauth",
+  "author": "",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@types/simple-oauth2": "^2.5.2",
+    "@vercel/node": "^1.11.1",
+    "simple-oauth2": "^2.5.2"
+  }
+}
