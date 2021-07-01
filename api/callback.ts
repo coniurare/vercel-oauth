@@ -1,58 +1,27 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { AuthorizationCode } from "simple-oauth2";
-import { config } from "../lib/config";
+import { VercelRequest, VercelResponse } from "@vercel/node";
+import { create, renderBody } from "./_lib/oauth2";
 
-export default async (req: IncomingMessage, res: ServerResponse) => {
+export default async (req: VercelRequest, res: VercelResponse) => {
+  const code = req.query.code as string;
   const { host } = req.headers;
-  const url = new URL(`https://${host}/${req.url}`);
-  const urlParams = url.searchParams;
-  const code = urlParams.get("code");
-  const provider = urlParams.get("provider");
-  const client = new AuthorizationCode(config(provider));
-  const tokenParams = {
-    code,
-    redirect_uri: `https://${host}/callback?provider=${provider}`,
-  };
+
+  const oauth2 = create();
 
   try {
-    const accessToken = await client.getToken(tokenParams);
-    const token = accessToken.token["access_token"];
-
-    const responseBody = renderBody("success", {
-      token,
-      provider,
+    const accessToken = await oauth2.authorizationCode.getToken({
+      code,
+      redirect_uri: `https://${host}/api/callback`
     });
+    const { token } = oauth2.accessToken.create(accessToken);
 
-    res.statusCode = 200;
-    res.end(responseBody);
+    res.status(200).send(
+      renderBody("success", {
+        token: token.access_token,
+        provider: "github"
+      })
+    );
   } catch (e) {
-    res.statusCode = 200;
-    res.end(renderBody("error", e));
+    res.status(200).send(renderBody("error", e));
   }
 };
 
-function renderBody(
-  status: string,
-  content: {
-    token: string;
-    provider: string;
-  }
-) {
-  return `
-    <script>
-      const receiveMessage = (message) => {
-        window.opener.postMessage(
-          'authorization:${content.provider}:${status}:${JSON.stringify(
-    content
-  )}',
-          message.origin
-        );
-
-        window.removeEventListener("message", receiveMessage, false);
-      }
-      window.addEventListener("message", receiveMessage, false);
-
-      window.opener.postMessage("authorizing:${content.provider}", "*");
-    </script>
-  `;
-}
