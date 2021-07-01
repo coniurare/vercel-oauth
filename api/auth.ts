@@ -1,10 +1,11 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
+
+import { NowRequest, NowResponse } from "@now/node";
 import crypto from "crypto";
 import { create } from "./_lib/oauth2";
 
 export const randomString = () => crypto.randomBytes(4).toString(`hex`);
 
-export default (req: VercelRequest, res: VercelResponse) => {
+export default (req: NowRequest, res: NowResponse) => {
   const { host } = req.headers;
 
   const oauth2 = create();
